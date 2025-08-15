@@ -1,6 +1,7 @@
 [
   {
     "descripcion": "hola",
-    "completada": true
+    "completada": false,
+    "prioridad": 2
   }
 ]

@@ -7,23 +7,27 @@ use std::{fs::File, io};
 struct Tarea {
     descripcion: String,
     completada: bool,
+    prioridad: u8,
 }
 
 impl Tarea {
     fn mostrar(&self, id: usize) {
         let estado = if self.completada { "[X]" } else { "[ ]" };
-        println!("{} {}: {}", estado, id, self.descripcion);
+        println!(
+            "{} {}: {} | prioridad {}",
+            estado, id, self.descripcion, self.prioridad
+        );
     }
 }
 
 fn main() {
     println!("Bienvenido al gestor de tareas");
     let nombre_archivo = "hola.json";
-    let mut tareas = cargar_tareas(nombre_archivo).unwrap();
+    let mut tareas = cargar_tareas(nombre_archivo).unwrap_or_default();
 
     loop {
         println!(
-            "\ningresa un comando('agregar <descripcion>', 'completar <id>', 'listar','salir')"
+            "\ningresa un comando('agregar <descripcion>', 'completar <id>', 'listar','salir', 'prioridad <id>')"
         );
         let mut entrada = String::new();
         io::stdin()
@@ -46,6 +50,7 @@ fn main() {
                     tareas.push(Tarea {
                         descripcion: descripcion.to_string(),
                         completada: false,
+                        prioridad: 3,
                     });
                     println!("\nTarea agregada: {descripcion}");
                 } else {
@@ -67,6 +72,34 @@ fn main() {
                     println!("\nID de tarea no válido.");
                 }
             }
+            _ if entrada.starts_with("prioridad ") => {
+                let id: usize = match entrada[10..].trim().parse() {
+                    Ok(num) => num,
+                    Err(_) => {
+                        println!("\nID inválido. Debe ser un número.");
+                        continue;
+                    }
+                };
+                println!("Escoja prioridad (1, 2 o 3)");
+                let mut priority = String::new();
+                io::stdin()
+                    .read_line(&mut priority)
+                    .expect("Error al leer entrada");
+                let priority = priority.trim().parse::<u8>();
+                let priority_num = match priority {
+                    Ok(num) => num,
+                    Err(_) => {
+                        println!("Error al castear entrada a u8");
+                        continue;
+                    }
+                };
+                if (priority_num > 0 && priority_num <= 3) && (id > 0 && id <= tareas.len()) {
+                    tareas[id - 1].prioridad = priority_num;
+                    println!("\nTarea {id} ahora tiene una proridad de {priority_num}.");
+                } else {
+                    println!("\nID de tarea o prioridad no válido.");
+                }
+            }
 
             _ => println!("\nComando no reconocido. Intenta de nuevo."),
         }
@@ -84,17 +117,12 @@ fn listar_tareas(lista_de_tareas: &[Tarea]) {
 fn cargar_tareas<P: AsRef<Path> + Copy>(
     direccion: P,
 ) -> Result<Vec<Tarea>, Box<dyn std::error::Error>> {
-    let archivo = File::open(direccion);
+    let archivo_abierto = File::open(direccion);
     let mut tareas: Vec<Tarea> = vec![];
-    match archivo {
-        // Si el archivo no existe lo creo y si existe devuelvo las tareas
-        Ok(archivo) => {
-            let reader = BufReader::new(archivo);
-            tareas = serde_json::from_reader(reader)?;
-        }
-        Err(_) => {
-            File::create(direccion)?;
-        }
+    if let Ok(archivo) = archivo_abierto {
+        // Si el archivo existe devuelvo las tareas
+        let reader = BufReader::new(archivo);
+        tareas = serde_json::from_reader(reader)?;
     }
     Ok(tareas)
 }
@@ -119,7 +147,7 @@ fn guardar_tareas<P: AsRef<Path>>(lista_tareas: Vec<Tarea>, direccion: P) {
         emitir reportes (TODO)
 
     Desafio cinco:
-        prioridades (TODO)
+        prioridades (DONE)
 
     Desafio seis:
         etiquetas (TODO)
