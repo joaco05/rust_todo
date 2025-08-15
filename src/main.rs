@@ -4,30 +4,49 @@ use std::path::Path;
 use std::{fs::File, io};
 
 #[derive(Serialize, Deserialize, Debug)]
+enum Tags {
+    Cocina,
+    Trabajo,
+    Educacion,
+    Hobbie,
+    Social,
+    Vacio,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
 struct Tarea {
     descripcion: String,
     completada: bool,
     prioridad: u8,
+    etiquetas: Tags,
 }
 
 impl Tarea {
     fn mostrar(&self, id: usize) {
         let estado = if self.completada { "[X]" } else { "[ ]" };
+        let etiqueta = match self.etiquetas {
+            Tags::Cocina => "Cocina",
+            Tags::Trabajo => "Trabajo",
+            Tags::Educacion => "Educacion",
+            Tags::Hobbie => "Hobbie",
+            Tags::Social => "Social",
+            Tags::Vacio => "Vacio",
+        };
         println!(
-            "{} {}: {} | prioridad {}",
-            estado, id, self.descripcion, self.prioridad
+            "{} | {} | {} | {} | {}",
+            estado, id, self.descripcion, self.prioridad, etiqueta
         );
     }
 }
 
 fn main() {
     println!("Bienvenido al gestor de tareas");
-    let nombre_archivo = "hola.json";
+    let nombre_archivo = "tareas.json";
     let mut tareas = cargar_tareas(nombre_archivo).unwrap_or_default();
 
     loop {
         println!(
-            "\ningresa un comando('agregar <descripcion>', 'completar <id>', 'listar','salir', 'prioridad <id>')"
+            "\ningresa un comando('agregar <descripcion>', 'completar <id>', 'listar','salir', 'prioridad <id>', etiquetar <id>)"
         );
         let mut entrada = String::new();
         io::stdin()
@@ -51,6 +70,7 @@ fn main() {
                         descripcion: descripcion.to_string(),
                         completada: false,
                         prioridad: 3,
+                        etiquetas: Tags::Vacio,
                     });
                     println!("\nTarea agregada: {descripcion}");
                 } else {
@@ -100,7 +120,32 @@ fn main() {
                     println!("\nID de tarea o prioridad no válido.");
                 }
             }
-
+            _ if entrada.starts_with("etiquetar ") => {
+                let id: usize = match entrada[10..].trim().parse() {
+                    Ok(num) => num,
+                    Err(_) => {
+                        println!("\nID inválido. Debe ser un número.");
+                        continue;
+                    }
+                };
+                println!("Escoja etiqueta (Cocina, Trabajo, Educacion, Hobbie, Social, Vacio)");
+                let mut etiqueta = String::new();
+                io::stdin()
+                    .read_line(&mut etiqueta)
+                    .expect("Error al leer entrada");
+                // lowercase para que funcione independientemente de la tipografia
+                tareas[id - 1].etiquetas = match etiqueta.trim().to_lowercase().as_str() {
+                    "cocina" => Tags::Cocina,
+                    "trabajo" => Tags::Trabajo,
+                    "educacion" => Tags::Educacion,
+                    "hobbie" => Tags::Hobbie,
+                    "social" => Tags::Social,
+                    _ => {
+                        println!("opcion no reconocida usando etiqueta default 'Vacio'");
+                        Tags::Vacio
+                    }
+                };
+            }
             _ => println!("\nComando no reconocido. Intenta de nuevo."),
         }
     }
@@ -108,6 +153,7 @@ fn main() {
 
 fn listar_tareas(lista_de_tareas: &[Tarea]) {
     println!("\nLista de Tareas:");
+    println!("completada | id | descripcion | prioridad | etiqueta");
 
     for (i, tarea) in lista_de_tareas.iter().enumerate() {
         tarea.mostrar(i + 1);
@@ -150,7 +196,7 @@ fn guardar_tareas<P: AsRef<Path>>(lista_tareas: Vec<Tarea>, direccion: P) {
         prioridades (DONE)
 
     Desafio seis:
-        etiquetas (TODO)
+        etiquetas (DONE)
 
     Desafio siete:
         subtareas (TODO)
