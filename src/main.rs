@@ -160,9 +160,7 @@ fn listar_tareas(lista_de_tareas: &[Tarea]) {
     }
 }
 
-fn cargar_tareas<P: AsRef<Path> + Copy>(
-    direccion: P,
-) -> Result<Vec<Tarea>, Box<dyn std::error::Error>> {
+fn cargar_tareas<P: AsRef<Path>>(direccion: P) -> Result<Vec<Tarea>, Box<dyn std::error::Error>> {
     let archivo_abierto = File::open(direccion);
     let mut tareas: Vec<Tarea> = vec![];
     if let Ok(archivo) = archivo_abierto {
